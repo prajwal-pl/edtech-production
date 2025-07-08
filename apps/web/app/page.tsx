@@ -1,6 +1,10 @@
+"use client";
+
 import Image, { type ImageProps } from "next/image";
 import { Button } from "@repo/ui/button";
+import { Button as SButton } from "@/components/ui/button";
 import styles from "./page.module.css";
+import { useClerk } from "@clerk/nextjs";
 
 type Props = Omit<ImageProps, "src"> & {
   srcLight: string;
@@ -19,6 +23,13 @@ const ThemeImage = (props: Props) => {
 };
 
 export default function Home() {
+  const { signOut } = useClerk();
+
+  const handleLogout = () => {
+    signOut({
+      redirectUrl: "/",
+    });
+  };
   return (
     <div className={styles.page}>
       <main className={styles.main}>
@@ -66,6 +77,7 @@ export default function Home() {
         <Button appName="web" className={styles.secondary}>
           Open alert
         </Button>
+        <SButton onClick={handleLogout}>Logout</SButton>
       </main>
       <footer className={styles.footer}>
         <a

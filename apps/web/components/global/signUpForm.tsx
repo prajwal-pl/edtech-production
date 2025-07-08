@@ -5,14 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Link from "next/link";
-import {
-  LucideLoader2,
-  Mail,
-  Lock,
-  AlertCircle,
-  User,
-  Check,
-} from "lucide-react";
+import { LucideLoader2, Mail, Lock, AlertCircle, Check } from "lucide-react";
 
 import { useAuth } from "@/lib/hooks/useAuth";
 import { Input } from "@/components/ui/input";
@@ -31,11 +24,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import OtpForm from "./OtpForm";
 
 // Define the form schema with validation
 const formSchema = z
@@ -58,12 +47,7 @@ const formSchema = z
     path: ["confirmPassword"],
   });
 
-const otpSchema = z.object({
-  otp: z.string().min(6, { message: "Please enter a valid verification code" }),
-});
-
 type FormValues = z.infer<typeof formSchema>;
-type OTPFormValues = z.infer<typeof otpSchema>;
 
 const SignUpForm = () => {
   const { isLoading, isVerifying, signup, handleVerify, googleLogin } =
@@ -79,13 +63,6 @@ const SignUpForm = () => {
     },
   });
 
-  const otpForm = useForm<OTPFormValues>({
-    resolver: zodResolver(otpSchema),
-    defaultValues: {
-      otp: "",
-    },
-  });
-
   const onSubmit = async (data: FormValues) => {
     setError(null);
     try {
@@ -98,97 +75,9 @@ const SignUpForm = () => {
     }
   };
 
-  const onVerifySubmit = async (data: OTPFormValues) => {
-    setError(null);
-    try {
-      await handleVerify(data.otp);
-    } catch (err) {
-      setError("Invalid verification code. Please try again.");
-    }
-  };
-
   // Render verification form if in verification state
   if (isVerifying) {
-    return (
-      <Card className="w-full max-w-md mx-auto shadow-lg border-opacity-50 transition-all duration-300 hover:shadow-xl">
-        <CardHeader className="space-y-1 text-center pb-6">
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            Verify your email
-          </CardTitle>
-          <CardDescription>
-            We've sent a verification code to your email. Please enter it below.
-          </CardDescription>
-        </CardHeader>
-
-        <div className="px-6 pb-6">
-          {error && (
-            <div className="mb-5 p-3 bg-destructive/10 text-destructive rounded-md flex items-center gap-2 animate-in fade-in-50 duration-300">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
-
-          <Form {...otpForm}>
-            <form
-              onSubmit={otpForm.handleSubmit(onVerifySubmit)}
-              className="space-y-6"
-            >
-              <FormField
-                control={otpForm.control}
-                name="otp"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Verification Code</FormLabel>
-                    <FormControl>
-                      <InputOTP
-                        maxLength={6}
-                        containerClassName="justify-center gap-2"
-                        value={field.value}
-                        onChange={field.onChange}
-                        disabled={isLoading}
-                      >
-                        <InputOTPGroup>
-                          {Array.from({ length: 6 }, (_, i) => (
-                            <InputOTPSlot
-                              key={i}
-                              index={i}
-                              className="rounded-md border h-12 w-10 text-center text-lg focus:border-primary"
-                            />
-                          ))}
-                        </InputOTPGroup>
-                      </InputOTP>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button
-                type="submit"
-                className="w-full transition-all duration-300 hover:opacity-90"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Verifying...
-                  </>
-                ) : (
-                  "Verify Email"
-                )}
-              </Button>
-            </form>
-          </Form>
-
-          <div className="mt-6 text-center text-sm">
-            Didn't receive a code?{" "}
-            <button className="text-primary font-medium hover:underline transition-colors duration-200">
-              Resend code
-            </button>
-          </div>
-        </div>
-      </Card>
-    );
+    return <OtpForm />;
   }
 
   // Render sign up form by default
