@@ -88,9 +88,6 @@ export function useAuth(): UseAuthReturn {
   const signup = async (data: AuthData) => {
     setIsLoading(true);
 
-    // Log signup attempt data (remove sensitive info in production)
-    console.log("Signup attempt with email:", data.email);
-
     if (!signUpLoaded) {
       console.error("Clerk signup is not loaded yet");
       toast.error("Authentication service is not ready. Please try again.");
@@ -112,8 +109,6 @@ export function useAuth(): UseAuthReturn {
         password: data.password,
       });
 
-      console.log("Signup attempt response:", signUpAttempt);
-
       if (!signUpAttempt) {
         console.error("signUpAttempt is undefined or null");
         toast.error("Failed to create account - no response from auth service");
@@ -124,8 +119,6 @@ export function useAuth(): UseAuthReturn {
         strategy: "email_code",
       });
 
-      console.log("Email verification prepared successfully");
-      // Set verifying state AFTER verification is prepared
       setIsVerifying(true);
       toast.success("Signup successful! Please verify your email.");
       // Removed router.push("/dashboard") to allow verification flow
@@ -156,16 +149,9 @@ export function useAuth(): UseAuthReturn {
     }
 
     try {
-      console.log("Attempting to verify email with code:", code);
-
-      // Remove any spaces or non-digit characters that might have been added
-      const cleanCode = code.replace(/\D/g, "");
-
       const verificationAttempt = await signUp.attemptEmailAddressVerification({
         code,
       });
-
-      console.log("Verification attempt response:", verificationAttempt);
 
       if (verificationAttempt?.status === "complete") {
         await signUpActive({
@@ -214,8 +200,6 @@ export function useAuth(): UseAuthReturn {
     try {
       console.log("Attempting to resend verification code");
 
-      // In Clerk, we need to directly call prepareEmailAddressVerification on the signUp object
-      // It will use the active sign up session automatically
       await attempt.prepareEmailAddressVerification({
         strategy: "email_code",
       });
