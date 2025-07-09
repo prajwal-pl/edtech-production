@@ -190,7 +190,7 @@ const SignUpForm = () => {
           </form>
         </Form>
 
-        <div className="relative my-6">
+        {/* <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-border"></div>
           </div>
@@ -199,9 +199,9 @@ const SignUpForm = () => {
               Or continue with
             </span>
           </div>
-        </div>
+        </div> */}
 
-        <Button
+        {/* <Button
           variant="outline"
           className="w-full transition-all duration-300 hover:shadow-sm"
           onClick={googleLogin}
@@ -235,7 +235,7 @@ const SignUpForm = () => {
               Sign up with Google
             </>
           )}
-        </Button>
+        </Button> */}
 
         <div className="mt-6 text-center text-sm">
           Already have an account?{" "}

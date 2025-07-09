@@ -21,17 +21,52 @@ export async function syncUserWithClerk(data: {
   avatar?: string;
 }) {
   try {
+    console.log("Starting user sync with Clerk data:", {
+      clerkId: data.clerkId,
+      email: data.email,
+      name:
+        data.displayName ||
+        `${data.firstName || ""} ${data.lastName || ""}`.trim(),
+    });
+
     const { clerkId, email, firstName, lastName, displayName, avatar } = data;
 
+    if (!clerkId || !email) {
+      console.error("Missing required fields for user sync:", {
+        clerkId,
+        email,
+      });
+      return {
+        success: false,
+        error: "Missing required fields: clerkId and email are required",
+      };
+    }
+
     // Check if user already exists
+    console.log("Checking for existing user with email or clerkId:", {
+      email,
+      clerkId,
+    });
     const existingUser = await db.user.findFirst({
       where: {
         OR: [{ email }, { clerkId }],
       },
     });
 
+    console.log(
+      "Existing user check result:",
+      existingUser
+        ? {
+            id: existingUser.id,
+            email: existingUser.email,
+            clerkId: existingUser.clerkId,
+          }
+        : "No existing user found"
+    );
+
     if (existingUser) {
       // Update existing user
+      console.log("Updating existing user:", existingUser.id);
       const user = await db.user.update({
         where: { id: existingUser.id },
         data: {
@@ -45,10 +80,21 @@ export async function syncUserWithClerk(data: {
         },
       });
 
+      console.log("User successfully updated:", {
+        id: user.id,
+        email: user.email,
+        clerkId: user.clerkId,
+      });
       return { success: true, user, isNewUser: false };
     }
 
     // Create new user
+    console.log("Creating new user with:", {
+      email,
+      clerkId,
+      displayName: displayName || `${firstName || ""} ${lastName || ""}`.trim(),
+    });
+
     const user = await db.user.create({
       data: {
         email,
@@ -61,10 +107,31 @@ export async function syncUserWithClerk(data: {
       },
     });
 
+    console.log("New user successfully created:", {
+      id: user.id,
+      email: user.email,
+      clerkId: user.clerkId,
+    });
     return { success: true, user, isNewUser: true };
   } catch (error) {
-    console.error("User sync error:", error);
-    return { success: false, error: "Failed to sync user with Clerk" };
+    console.error(
+      "User sync detailed error:",
+      error instanceof Error
+        ? {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+          }
+        : error
+    );
+
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to sync user with Clerk",
+    };
   }
 }
 

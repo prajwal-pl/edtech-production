@@ -1,14 +1,12 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 
-const isPublicRoute = createRouteMatcher([
-  "/login(.*)",
-  "/signup(.*)",
-  "/sso-callback(.*)",
-  "/",
-]);
+// Define public routes that don't require authentication
+const isPublicRoute = createRouteMatcher(["/login(.*)", "/signup(.*)", "/"]);
 
+// Export the middleware
 export default clerkMiddleware(async (auth, req) => {
+  // Make sure we're authenticated for protected routes
   if (!isPublicRoute(req)) {
     await auth.protect();
   }

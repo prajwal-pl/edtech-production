@@ -3,7 +3,7 @@
 import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { syncUserWithClerk } from "@/actions/auth";
+import { handleOAuthCallback } from "@/actions/oauth-callback";
 import { useRouter } from "next/navigation";
 
 export default function SSOCallbackPage() {
@@ -16,44 +16,31 @@ export default function SSOCallbackPage() {
     if (isLoaded && isSignedIn && user) {
       const syncUser = async () => {
         try {
-          // Get user details from Clerk
-          const userData = {
-            clerkId: user.id,
-            email: user.primaryEmailAddress?.emailAddress || "",
-            firstName: user.firstName || undefined,
-            lastName: user.lastName || undefined,
-            displayName: user.fullName || undefined,
-            avatar: user.imageUrl || undefined,
-          };
+          console.log("OAuth login: User data loaded, calling server action");
 
-          // Sync user with our database
-          const result = await syncUserWithClerk(userData);
+          // Call the server action to handle the user sync
+          // But don't wait for it - let the dashboard page handle this
+          handleOAuthCallback().catch((err) => {
+            console.error("Background sync error:", err);
+          });
 
-          if (result.success) {
-            console.log(
-              "OAuth user synced with database:",
-              result.isNewUser ? "New user created" : "Existing user updated"
-            );
-          } else {
-            console.error(
-              "Failed to sync OAuth user with database:",
-              result.error
-            );
-          }
-
-          // Continue to dashboard regardless of sync result
-          router.push("/dashboard");
+          // Navigate to dashboard with a flag indicating this is from OAuth
+          // This allows our dashboard page to ensure the user is in the database
+          router.push("/dashboard?from_oauth=true");
         } catch (error) {
-          console.error("Error syncing OAuth user with database:", error);
+          console.error("Error in OAuth callback:", error);
           // Continue to dashboard even if sync fails
-          router.push("/dashboard");
+          router.push("/dashboard?from_oauth=true&sync_error=true");
         }
       };
 
       syncUser();
+    } else if (isLoaded && !isSignedIn) {
+      console.log("OAuth callback: User is not signed in");
+      router.push("/login");
     }
   }, [isLoaded, isSignedIn, user, router]);
 
-  // Handle the redirect flow by calling the Clerk.handleRedirectCallback() method
+  // Handle the redirect flow
   return <AuthenticateWithRedirectCallback />;
 }

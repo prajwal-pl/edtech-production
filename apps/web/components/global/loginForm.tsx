@@ -144,7 +144,7 @@ const LoginForm = () => {
           </form>
         </Form>
 
-        <div className="relative my-6">
+        {/* <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-border"></div>
           </div>
@@ -153,9 +153,9 @@ const LoginForm = () => {
               Or continue with
             </span>
           </div>
-        </div>
+        </div> */}
 
-        <Button
+        {/* <Button
           variant="outline"
           className="w-full transition-all duration-300 hover:shadow-sm"
           onClick={handleGoogleLogin}
@@ -189,7 +189,7 @@ const LoginForm = () => {
               Sign in with Google
             </>
           )}
-        </Button>
+        </Button> */}
 
         <div className="mt-6 text-center text-sm">
           Don&apos;t have an account?{" "}
