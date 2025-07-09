@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -17,97 +17,243 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useUser } from "@clerk/nextjs";
+import { syncUserWithClerk } from "@/actions/auth";
+import {
+  getDiagnosticQuestions,
+  generateDiagnosticQuestions,
+  submitDiagnosticResult,
+  getOrCreateDiagnosticSubjects,
+} from "@/actions/index";
 
 interface Question {
-  id: number;
-  subject: string;
+  id: string;
+  subjectId: string;
   text: string;
   options: string[];
+  correctAnswer: number;
+  difficulty: string;
   answer?: number;
 }
 
 const DiagnosticComponent = () => {
-  const [currentSubject, setCurrentSubject] = useState<string>("math");
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const [currentSubject, setCurrentSubject] = useState<string>("");
   const [currentStep, setCurrentStep] = useState<number>(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [subjects, setSubjects] = useState<Array<{ id: string; name: string }>>(
+    []
+  );
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [results, setResults] = useState<any>(null);
+  const [userDbId, setUserDbId] = useState<string | null>(null);
 
-  const subjects = [
-    { id: "math", name: "Mathematics" },
-    { id: "science", name: "Science" },
-    { id: "language", name: "Language Arts" },
-    { id: "history", name: "History" },
-  ];
+  // Sync user with database when component mounts
+  useEffect(() => {
+    const syncUser = async () => {
+      if (!isUserLoaded || !user) return;
 
-  const questions: Question[] = [
-    {
-      id: 1,
-      subject: "math",
-      text: "Solve for x: 2x + 5 = 13",
-      options: ["x = 3", "x = 4", "x = 5", "x = 6"],
-    },
-    {
-      id: 2,
-      subject: "math",
-      text: "What is the area of a circle with radius 3?",
-      options: ["9π", "6π", "3π", "π"],
-    },
-    {
-      id: 3,
-      subject: "science",
-      text: "Which of the following is NOT a state of matter?",
-      options: ["Solid", "Liquid", "Gas", "Energy"],
-    },
-    {
-      id: 4,
-      subject: "science",
-      text: "What is the chemical symbol for gold?",
-      options: ["Go", "Gd", "Au", "Ag"],
-    },
-    {
-      id: 5,
-      subject: "language",
-      text: "Which of the following is a proper noun?",
-      options: ["City", "Country", "Japan", "Mountain"],
-    },
-    {
-      id: 6,
-      subject: "language",
-      text: "Identify the adjective: 'The quick brown fox jumps over the lazy dog.'",
-      options: ["Quick", "Jumps", "Over", "Fox"],
-    },
-    {
-      id: 7,
-      subject: "history",
-      text: "Who was the first president of the United States?",
-      options: [
-        "Thomas Jefferson",
-        "John Adams",
-        "George Washington",
-        "Benjamin Franklin",
-      ],
-    },
-    {
-      id: 8,
-      subject: "history",
-      text: "When did World War II end?",
-      options: ["1943", "1944", "1945", "1946"],
-    },
-  ];
+      try {
+        setIsLoading(true);
+        const clerkId = user.id;
+        const primaryEmail = user.primaryEmailAddress?.emailAddress;
+
+        const result = await syncUserWithClerk({
+          clerkId,
+          email: primaryEmail!,
+          firstName: user.firstName || undefined,
+          lastName: user.lastName || undefined,
+          avatar: user.imageUrl || undefined,
+        });
+
+        if (result.success && result.user) {
+          setUserDbId(result.user.id);
+
+          // After user is synced, fetch initial subject data
+          await fetchSubjects();
+        } else {
+          console.error("Failed to sync user:", result.error);
+        }
+      } catch (error) {
+        console.error("Error syncing user:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    syncUser();
+  }, [isUserLoaded, user]);
+
+  // Fetch available subjects
+  const fetchSubjects = async () => {
+    try {
+      setIsLoading(true);
+      // Get or create subjects from the database
+      const result = await getOrCreateDiagnosticSubjects();
+
+      if (result.success && result.subjects && result.subjects.length > 0) {
+        setSubjects(result.subjects);
+        // Safely access the first subject
+        const firstSubject = result.subjects[0];
+        if (firstSubject && firstSubject.id) {
+          setCurrentSubject(firstSubject.id);
+          await fetchQuestions(firstSubject.id);
+        }
+      } else {
+        console.error("Failed to fetch subjects:", result.error);
+        // Fallback to hardcoded subjects only if database retrieval fails
+        const fallbackSubjects = [
+          { id: "fallback-math", name: "Mathematics" },
+          { id: "fallback-science", name: "Science" },
+          { id: "fallback-language", name: "Language Arts" },
+          { id: "fallback-history", name: "History" },
+        ];
+        setSubjects(fallbackSubjects);
+        // Safely access the first fallback subject
+        if (fallbackSubjects.length > 0 && fallbackSubjects[0]) {
+          setCurrentSubject(fallbackSubjects[0].id);
+          // In fallback mode, we'll rely on the sample questions
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch or generate questions for a subject
+  const fetchQuestions = async (subjectId: string) => {
+    try {
+      setIsLoading(true);
+
+      // First try to get existing questions
+      const existingResult = await getDiagnosticQuestions(subjectId);
+
+      if (
+        existingResult.success &&
+        existingResult.questions &&
+        existingResult.questions.length > 0
+      ) {
+        setQuestions(existingResult.questions);
+      } else {
+        // If no questions exist, generate new ones
+        try {
+          const generatedResult = await generateDiagnosticQuestions({
+            subjectId,
+            level: "intermediate",
+            count: 5,
+          });
+
+          if (generatedResult.success && generatedResult.questions) {
+            setQuestions(generatedResult.questions);
+          } else {
+            console.error(
+              "Failed to generate questions:",
+              generatedResult.error
+            );
+
+            // Fallback to sample questions if generation fails
+            const sampleQuestions = [
+              {
+                id: `sample-${subjectId}-1`,
+                subjectId: subjectId,
+                text: "What is the main purpose of a diagnostic assessment?",
+                options: [
+                  "To grade students",
+                  "To identify knowledge gaps",
+                  "To rank students",
+                  "To assign homework",
+                ],
+                correctAnswer: 1,
+                difficulty: "beginner",
+              },
+              {
+                id: `sample-${subjectId}-2`,
+                subjectId: subjectId,
+                text: "Which of the following is a benefit of personalized learning?",
+                options: [
+                  "Less teacher involvement",
+                  "Standardized curriculum for all",
+                  "Adapts to individual learning needs",
+                  "Reduced use of technology",
+                ],
+                correctAnswer: 2,
+                difficulty: "beginner",
+              },
+              // Add more comprehensive sample questions
+              {
+                id: `sample-${subjectId}-3`,
+                subjectId: subjectId,
+                text: `What best describes the field of ${subjects.find((s) => s.id === subjectId)?.name || "this subject"}?`,
+                options: [
+                  "The study of natural phenomena",
+                  "The analysis of historical events",
+                  "The application of mathematical principles",
+                  "The development of communication skills",
+                ],
+                correctAnswer: 0,
+                difficulty: "intermediate",
+              },
+              {
+                id: `sample-${subjectId}-4`,
+                subjectId: subjectId,
+                text: "Which learning approach is most effective for long-term retention?",
+                options: [
+                  "Memorization through repetition",
+                  "Visual learning with diagrams",
+                  "Spaced practice with regular review",
+                  "Concentrated study in one session",
+                ],
+                correctAnswer: 2,
+                difficulty: "intermediate",
+              },
+              {
+                id: `sample-${subjectId}-5`,
+                subjectId: subjectId,
+                text: "How can educational technology best support learning?",
+                options: [
+                  "By replacing traditional teaching methods",
+                  "By providing automated grading",
+                  "By offering personalized learning paths",
+                  "By reducing the need for teacher involvement",
+                ],
+                correctAnswer: 2,
+                difficulty: "advanced",
+              },
+            ];
+            setQuestions((prevQuestions) => [
+              ...prevQuestions,
+              ...sampleQuestions,
+            ]);
+          }
+        } catch (error) {
+          console.error("Error during question generation:", error);
+          // Display an error message to the user or use sample questions
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredQuestions = questions.filter(
-    (q) => q.subject === currentSubject
+    (q) => q.subjectId === currentSubject
   );
   const currentQuestion = filteredQuestions[currentStep];
 
-  const handleSelectAnswer = (questionId: number, answerIndex: number) => {
+  const handleSelectAnswer = (questionId: string, answerIndex: number) => {
     setAnswers((prev) => ({
       ...prev,
       [questionId]: answerIndex,
     }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < filteredQuestions.length - 1) {
       // Add a slight delay for animation effect
       setTimeout(() => {
@@ -118,17 +264,25 @@ const DiagnosticComponent = () => {
       const currentSubjectIndex = subjects.findIndex(
         (s) => s.id === currentSubject
       );
+
       if (
         currentSubjectIndex < subjects.length - 1 &&
         subjects[currentSubjectIndex + 1]
       ) {
-        setTimeout(() => {
-          setCurrentSubject(subjects[currentSubjectIndex + 1]?.id!);
-          setCurrentStep(0);
-        }, 150);
+        const nextSubject = subjects[currentSubjectIndex + 1];
+        if (nextSubject) {
+          setTimeout(async () => {
+            setCurrentSubject(nextSubject.id);
+            setCurrentStep(0);
+            // Load questions for the next subject if we haven't already
+            if (!questions.some((q) => q.subjectId === nextSubject.id)) {
+              await fetchQuestions(nextSubject.id);
+            }
+          }, 150);
+        }
       } else {
-        // All subjects completed
-        setIsCompleted(true);
+        // All subjects completed, submit results
+        await submitResults();
       }
     }
   };
@@ -145,22 +299,73 @@ const DiagnosticComponent = () => {
         (s) => s.id === currentSubject
       );
       if (currentSubjectIndex > 0 && subjects[currentSubjectIndex - 1]) {
+        const prevSubject = subjects[currentSubjectIndex - 1];
         setTimeout(() => {
-          setCurrentSubject(subjects[currentSubjectIndex - 1]?.id!);
-          const prevSubjectQuestions = questions.filter(
-            (q) => q.subject === subjects[currentSubjectIndex - 1]?.id
-          );
-          setCurrentStep(prevSubjectQuestions.length - 1);
+          if (prevSubject) {
+            setCurrentSubject(prevSubject.id);
+            const prevSubjectQuestions = questions.filter(
+              (q) => q.subjectId === prevSubject.id
+            );
+            setCurrentStep(prevSubjectQuestions.length - 1);
+          }
         }, 150);
       }
     }
   };
 
+  const submitResults = async () => {
+    if (!userDbId) {
+      console.error("User not found in database");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // Process responses
+      const responses = Object.entries(answers).map(([questionId, answer]) => {
+        const question = questions.find((q) => q.id === questionId);
+        return {
+          questionId,
+          answer,
+          isCorrect: question ? question.correctAnswer === answer : false,
+        };
+      });
+
+      // Calculate score (percentage correct)
+      const correctCount = responses.filter((r) => r.isCorrect).length;
+      const score = responses.length > 0 ? correctCount / responses.length : 0;
+
+      // Submit results to backend
+      const result = await submitDiagnosticResult({
+        userId: userDbId,
+        score,
+        responses,
+        recommendations:
+          "Based on your results, we recommend focusing on improving your understanding of key concepts.",
+      });
+
+      if (result.success) {
+        setResults(result.result);
+        setIsCompleted(true);
+      } else {
+        console.error("Failed to submit diagnostic result:", result.error);
+      }
+    } catch (error) {
+      console.error("Error submitting results:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleStartDiagnostic = () => {
-    setCurrentSubject("math");
-    setCurrentStep(0);
-    setAnswers({});
-    setIsCompleted(false);
+    if (subjects.length > 0 && subjects[0]) {
+      setCurrentSubject(subjects[0].id);
+      setCurrentStep(0);
+      setAnswers({});
+      setIsCompleted(false);
+      setResults(null);
+    }
   };
 
   return (

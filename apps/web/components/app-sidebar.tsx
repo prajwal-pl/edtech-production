@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
 import { TeamSwitcher } from "@/components/team-switcher";
 import {
@@ -57,20 +56,6 @@ const edtechData = {
       title: "Learning",
       url: "/learn",
       icon: BookOpen,
-      items: [
-        {
-          title: "Courses",
-          url: "/learn/courses",
-        },
-        {
-          title: "Recommended",
-          url: "/learn/recommended",
-        },
-        {
-          title: "Recent Lessons",
-          url: "/learn/recent",
-        },
-      ],
     },
     {
       title: "Diagnostic",
@@ -89,15 +74,15 @@ const edtechData = {
       items: [
         {
           title: "Job Openings",
-          url: "/career/jobs",
+          url: "/career/job",
         },
         {
-          title: "Skills Assessment",
-          url: "/career/skills",
+          title: "Career",
+          url: "/career",
         },
         {
           title: "Career Path",
-          url: "/career/path",
+          url: "/career/resumes",
         },
       ],
     },
@@ -151,10 +136,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader className="py-3 flex-shrink-0">
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
-      <SidebarContent className="overflow-hidden flex-shrink-0 flex flex-col">
+
+      <SidebarContent className="flex-1 overflow-y-auto">
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
       </SidebarContent>
+
       <SidebarFooter className="mt-auto border-t py-3 flex-shrink-0">
         <NavUser />
       </SidebarFooter>

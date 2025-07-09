@@ -58,16 +58,17 @@ export const generateDiagnosticContent = async (input: {
 
     if (mode === "generate_questions") {
       prompt = `
-Generate ${count} assessment questions for a diagnostic test on ${subject} at ${level} level.
+Generate ${count} multiple-choice assessment questions for a diagnostic test on ${subject} at ${level} level.
 ${topics.length > 0 ? `Focus on these specific topics: ${topics.join(", ")}` : ""}
 
 Each question should test a different concept or skill. For each question, provide:
 1. A unique questionId
 2. The question text
-3. The difficulty level (beginner, intermediate, advanced)
-4. The correct answer
-5. A detailed explanation of the answer
-6. Keywords or concepts being tested
+3. Four answer options (A, B, C, D format)
+4. The correct answer option (as an index 0-3 or letter A-D)
+5. The difficulty level (beginner, intermediate, advanced)
+6. A detailed explanation of the answer
+7. Keywords or concepts being tested
 
 Format the response as a valid JSON array of question objects.
 `;
@@ -79,13 +80,15 @@ Always return your response as a valid, parseable JSON array with the following 
   {
     "questionId": "unique-id-string",
     "question": "The full question text",
+    "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+    "correctAnswer": 0,
     "difficulty": "beginner|intermediate|advanced",
-    "correctAnswer": "The correct answer",
     "explanation": "Detailed explanation of why this is the correct answer",
     "concepts": ["concept1", "concept2"]
   },
   ...
 ]
+The correctAnswer should be the index (0-3) of the correct option in the options array.
 Do not include any text outside of the JSON structure. Ensure your JSON is valid and can be parsed.
 `;
     } else if (mode === "evaluate_answers") {
@@ -149,9 +152,11 @@ Do not include any text outside of the JSON structure. Ensure your JSON is valid
           content: systemMessage,
         },
       ],
-      response_format: { type: "json_object" },
+      // Use 'json_object' for evaluation, but the questions are an array
+      response_format:
+        mode === "evaluate_answers" ? { type: "json_object" } : undefined,
     });
-
+    console.log(response.choices[0]?.message.content || "{}");
     const content = response.choices[0]?.message.content || "{}";
 
     try {

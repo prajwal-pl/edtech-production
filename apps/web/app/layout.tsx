@@ -4,6 +4,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import NextTopLoader from "nextjs-toploader";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -35,6 +36,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <Toaster richColors />
+            <NextTopLoader color="purple" showSpinner={false} />
             {children}
           </ThemeProvider>
         </body>

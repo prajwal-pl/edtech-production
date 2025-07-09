@@ -904,6 +904,49 @@ async function areAllLessonsCompleted(
 // =====================
 
 /**
+ * Get or create diagnostic subjects
+ * This ensures we have subjects available for the diagnostic tests
+ */
+export async function getOrCreateDiagnosticSubjects() {
+  try {
+    // Default subjects to ensure exist
+    const defaultSubjects = [
+      { name: "Mathematics" },
+      { name: "Science" },
+      { name: "Language Arts" },
+      { name: "History" },
+    ];
+
+    // Create subjects if they don't exist or get existing ones
+    const subjects = await Promise.all(
+      defaultSubjects.map(async (subjectData) => {
+        // Try to find existing subject
+        let subject = await db.subject.findFirst({
+          where: { name: subjectData.name },
+        });
+
+        // Create if it doesn't exist
+        if (!subject) {
+          subject = await db.subject.create({
+            data: {
+              name: subjectData.name,
+              description: `${subjectData.name} subject for diagnostic assessments`,
+            },
+          });
+        }
+
+        return subject;
+      })
+    );
+
+    return { success: true, subjects };
+  } catch (error) {
+    console.error("Failed to get or create subjects:", error);
+    return { success: false, error: "Failed to get or create subjects" };
+  }
+}
+
+/**
  * Get diagnostic questions by subject
  */
 export async function getDiagnosticQuestions(subjectId: string) {
@@ -952,37 +995,109 @@ export async function generateDiagnosticQuestions(data: {
       count,
     });
 
-    if (!Array.isArray(generatedQuestions)) {
-      throw new Error("Generated questions format is invalid");
+    // Ensure we have an array of questions
+    let questionsArray = [];
+    if (Array.isArray(generatedQuestions)) {
+      questionsArray = generatedQuestions;
+    } else if (generatedQuestions && typeof generatedQuestions === "object") {
+      // If we got an object with a questions property, use that
+      if (Array.isArray(generatedQuestions.questions)) {
+        questionsArray = generatedQuestions.questions;
+      } else if (
+        generatedQuestions.data &&
+        Array.isArray(generatedQuestions.data)
+      ) {
+        questionsArray = generatedQuestions.data;
+      } else {
+        // Last resort: try to convert object to array if it has numeric keys
+        const objKeys = Object.keys(generatedQuestions);
+        if (objKeys.length > 0 && objKeys.every((k) => !isNaN(Number(k)))) {
+          questionsArray = Object.values(generatedQuestions);
+        } else {
+          // If we can't extract an array, create a simple fallback question
+          questionsArray = [
+            {
+              questionId: "fallback-question",
+              question: `What is the primary focus of ${subject.name}?`,
+              options: ["Option A", "Option B", "Option C", "Option D"],
+              correctAnswer: 0,
+              difficulty: "medium",
+            },
+          ];
+        }
+      }
+    }
+
+    if (questionsArray.length === 0) {
+      throw new Error("No questions were generated");
     }
 
     // Store questions in the database
     const savedQuestions = await Promise.all(
-      generatedQuestions.map(async (q: any) => {
+      questionsArray.map(async (q: any) => {
+        // Ensure we have the right property names
+        // (some AI models use different formats)
+        const questionText = q.question || q.text || q.questionText || "";
+        const questionOptions = q.options || q.choices || [];
+        let correctAnswer = q.correctAnswer || q.correct || q.answer || 0;
+        const difficulty = q.difficulty?.toLowerCase() || "medium";
+
         // Format options properly for storage
-        const options =
-          q.options ||
-          // If no options provided, extract from the question text if possible
-          (q.question.includes("A)")
-            ? q.question
-                .split(/[A-D]\)/)
-                .slice(1)
-                .map((opt: string) => opt.trim())
-            : ["Option not provided"]);
+        let options = questionOptions;
+
+        // If no options array provided, try to extract from question text
+        if (!options || options.length === 0) {
+          if (questionText.includes("A)") || questionText.includes("A.")) {
+            options = questionText
+              .split(/[A-D][\.|\)]/)
+              .slice(1)
+              .map((opt: string) => opt.trim())
+              .filter((opt: string) => opt.length > 0);
+          }
+
+          // If still no options, check if there's an options string that needs parsing
+          else if (typeof q.options === "string") {
+            // Try to parse option string like "1. Option A, 2. Option B" etc.
+            const optionsString = q.options as string;
+            options = optionsString
+              .split(/\d+\.\s*/)
+              .slice(1) // Remove the first empty element
+              .map((o) => o.trim())
+              .filter((o) => o.length > 0);
+          }
+
+          // Last resort fallback
+          if (!options || options.length === 0) {
+            options = [
+              `Option for ${subject.name} 1`,
+              `Option for ${subject.name} 2`,
+              `Option for ${subject.name} 3`,
+              `Option for ${subject.name} 4`,
+            ];
+          }
+        }
+
+        // Normalize the correct answer to a number index
+        if (typeof correctAnswer === "string") {
+          if (correctAnswer.match(/^[A-D]$/i)) {
+            // Convert A,B,C,D to 0,1,2,3
+            correctAnswer = correctAnswer.toUpperCase().charCodeAt(0) - 65;
+          } else if (!isNaN(parseInt(correctAnswer))) {
+            // Convert string number to integer
+            correctAnswer = parseInt(correctAnswer);
+          } else {
+            // Default to first option
+            correctAnswer = 0;
+          }
+        }
 
         return db.diagnosticQuestion.create({
           data: {
             subjectId,
-            text: q.question,
+            text: questionText,
             options,
-            correctAnswer:
-              typeof q.correctAnswer === "number"
-                ? q.correctAnswer
-                : // If correct answer is a string like "A", convert to index 0-3
-                  q.correctAnswer?.toString().charCodeAt(0) - 65 || 0,
-            difficulty: q.difficulty?.toLowerCase() || "medium",
-            // Store additional metadata as JSON in the text field
-            // In a production app, you would add fields for these or create a metadata JSONB field
+            correctAnswer: correctAnswer,
+            difficulty: difficulty,
           },
         });
       })
