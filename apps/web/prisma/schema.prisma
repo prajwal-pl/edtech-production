@@ -14,11 +14,348 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User models
 model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  firstName         String?
+  lastName          String?
+  displayName       String?
+  avatar            String?
+  educationLevel    EducationLevel?
+  bio               String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  enrollments       Enrollment[]
+  progress          LessonProgress[]
+  diagnosticResults DiagnosticResult[]
+  projects          Project[]
+  tutorSessions     TutorSession[]
+  notifications     Notification[]
+  team              Team?              @relation(fields: [teamId], references: [id])
+  teamId            String?
+  achievements      UserAchievement[]
+}
+
+enum EducationLevel {
+  HIGH_SCHOOL
+  COLLEGE
+  GRADUATE
+  PROFESSIONAL
+}
+
+model Team {
   id        String   @id @default(cuid())
-  email     String   @unique
-  firstName String?
-  lastName  String?
+  name      String
+  logo      String?
+  plan      String   @default("Free")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  users     User[]
+}
+
+// Learning content models
+model Subject {
+  id          String               @id @default(cuid())
+  name        String
+  description String?
+  icon        String?
+  color       String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  modules     Module[]
+  diagnostics DiagnosticQuestion[]
+}
+
+model Module {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  subject     Subject      @relation(fields: [subjectId], references: [id])
+  subjectId   String
+  level       String? // beginner, intermediate, advanced
+  order       Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  lessons     Lesson[]
+  enrollments Enrollment[]
+}
+
+model Lesson {
+  id            String           @id @default(cuid())
+  title         String
+  description   String?
+  content       String?          @db.Text
+  duration      Int // in minutes
+  difficulty    String // beginner, intermediate, advanced
+  module        Module           @relation(fields: [moduleId], references: [id])
+  moduleId      String
+  order         Int
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  progress      LessonProgress[]
+  prerequisites Lesson[]         @relation("LessonPrerequisites")
+  requiredFor   Lesson[]         @relation("LessonPrerequisites")
+}
+
+model Enrollment {
+  id          String           @id @default(cuid())
+  user        User             @relation(fields: [userId], references: [id])
+  userId      String
+  module      Module           @relation(fields: [moduleId], references: [id])
+  moduleId    String
+  startDate   DateTime         @default(now())
+  completedAt DateTime?
+  status      EnrollmentStatus @default(IN_PROGRESS)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([userId, moduleId])
+}
+
+enum EnrollmentStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  DROPPED
+}
+
+model LessonProgress {
+  id           String         @id @default(cuid())
+  user         User           @relation(fields: [userId], references: [id])
+  userId       String
+  lesson       Lesson         @relation(fields: [lessonId], references: [id])
+  lessonId     String
+  status       ProgressStatus @default(NOT_STARTED)
+  score        Float? // percentage score if applicable
+  timeSpent    Int? // time spent in minutes
+  lastAccessed DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([userId, lessonId])
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  LOCKED
+}
+
+// Diagnostic assessment models
+model DiagnosticQuestion {
+  id            String               @id @default(cuid())
+  subject       Subject              @relation(fields: [subjectId], references: [id])
+  subjectId     String
+  text          String
+  options       String[] // JSON array of options
+  correctAnswer Int
+  difficulty    String // easy, medium, hard
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  responses     DiagnosticResponse[]
+}
+
+model DiagnosticResponse {
+  id         String             @id @default(cuid())
+  question   DiagnosticQuestion @relation(fields: [questionId], references: [id])
+  questionId String
+  result     DiagnosticResult   @relation(fields: [resultId], references: [id])
+  resultId   String
+  answer     Int?
+  isCorrect  Boolean?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+}
+
+model DiagnosticResult {
+  id              String               @id @default(cuid())
+  user            User                 @relation(fields: [userId], references: [id])
+  userId          String
+  score           Float // percentage score
+  responses       DiagnosticResponse[]
+  completedAt     DateTime             @default(now())
+  recommendations String?              @db.Text // JSON with recommended modules/lessons
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+// Projects and career models
+model Project {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String
+  status      ProjectStatus @default(IN_PROGRESS)
+  progress    Float? // percentage
+  dueDate     DateTime?
+  submittedAt DateTime?
+  grade       Float?
+  feedback    String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  steps       ProjectStep[]
+}
+
+enum ProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  COMPLETED
+  OVERDUE
+}
+
+model ProjectStep {
+  id          String            @id @default(cuid())
+  title       String
+  description String?
+  project     Project           @relation(fields: [projectId], references: [id])
+  projectId   String
+  status      ProjectStepStatus @default(PENDING)
+  order       Int
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+enum ProjectStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Career {
+  id             String           @id @default(cuid())
+  title          String
+  description    String?
+  requirements   String?          @db.Text // JSON with skill requirements
+  salaryRange    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  jobOpenings    JobOpening[]
+  careerPath     CareerPathStep[]
+  certifications Certification[]
+}
+
+model JobOpening {
+  id        String   @id @default(cuid())
+  title     String
+  company   String
+  location  String
+  salary    String?
+  career    Career   @relation(fields: [careerId], references: [id])
+  careerId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CareerPathStep {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  level       Int
+  salaryRange String?
+  career      Career   @relation(fields: [careerId], references: [id])
+  careerId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Certification {
+  id        String   @id @default(cuid())
+  name      String
+  provider  String
+  career    Career   @relation(fields: [careerId], references: [id])
+  careerId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Tutor models
+model TutorSession {
+  id          String             @id @default(cuid())
+  user        User               @relation(fields: [userId], references: [id])
+  userId      String
+  title       String?
+  status      TutorSessionStatus @default(SCHEDULED)
+  scheduledAt DateTime?
+  endedAt     DateTime?
+  notes       String?            @db.Text
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  messages    TutorMessage[]
+}
+
+enum TutorSessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model TutorMessage {
+  id        String        @id @default(cuid())
+  session   TutorSession  @relation(fields: [sessionId], references: [id])
+  sessionId String
+  sender    MessageSender @default(SYSTEM)
+  content   String        @db.Text
+  sentAt    DateTime      @default(now())
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+enum MessageSender {
+  SYSTEM
+  USER
+  AI
+}
+
+// Achievement and notification models
+model Achievement {
+  id               String            @id @default(cuid())
+  title            String
+  description      String?
+  icon             String?
+  criteria         String?           @db.Text // JSON with criteria
+  points           Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  user          User        @relation(fields: [userId], references: [id])
+  userId        String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  achievementId String
+  awardedAt     DateTime    @default(now())
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([userId, achievementId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  user      User             @relation(fields: [userId], references: [id])
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
 }

@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { generateText } from "@/actions/ai";
+import MarkdownRenderer from "./MarkdownRenderer";
 
 interface Message {
   id: string;
@@ -75,7 +77,7 @@ const TutorComponent = () => {
     { id: "session3", title: "Essay Writing Tips", date: "Last week" },
   ];
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
     // Add user message
@@ -86,22 +88,42 @@ const TutorComponent = () => {
       timestamp: new Date(),
     };
 
+    // Save the input value before clearing it
+    const userQuestion = inputValue;
+
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
     setIsTyping(true);
 
-    // Simulate AI response after a short delay
-    setTimeout(() => {
+    try {
+      // Call the generateText function to get AI response
+      const aiResponse = await generateText(userQuestion);
+
+      // Create AI message with the response
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         sender: "ai",
-        content: `I'll help you with "${inputValue}". Let's break this down step by step...`,
+        content: aiResponse,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+
+      // Add error message
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: "system",
+        content:
+          "Sorry, I'm having trouble responding right now. Please try again later.",
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -111,7 +133,7 @@ const TutorComponent = () => {
     }
   };
 
-  const handleTopicSelect = (topic: Topic) => {
+  const handleTopicSelect = async (topic: Topic) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       sender: "user",
@@ -122,18 +144,36 @@ const TutorComponent = () => {
     setMessages((prev) => [...prev, userMessage]);
     setIsTyping(true);
 
-    // Simulate AI response after a short delay
-    setTimeout(() => {
+    try {
+      // Call the generateText function with the topic request
+      const prompt = `Can you help me with ${topic.title}? ${topic.description}`;
+      const aiResponse = await generateText(prompt);
+
+      // Create AI message with the response
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         sender: "ai",
-        content: `I'd be happy to help you with ${topic.title}! ${topic.description}. Let's start with the fundamentals...`,
+        content: aiResponse,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Error getting AI response for topic:", error);
+
+      // Add error message
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: "system",
+        content:
+          "Sorry, I'm having trouble responding to this topic right now. Please try again later.",
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -337,9 +377,13 @@ const TutorComponent = () => {
                             : "bg-muted"
                       }`}
                     >
-                      <p className="whitespace-pre-wrap text-sm">
-                        {message.content}
-                      </p>
+                      {message.sender === "ai" ? (
+                        <MarkdownRenderer content={message.content} />
+                      ) : (
+                        <p className="whitespace-pre-wrap text-sm">
+                          {message.content}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
