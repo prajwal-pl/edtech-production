@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ChartContainer } from "@/components/ui/chart";
 import ProgressWidget from "./ProgressWidget";
 import RecentLessonsWidget from "./RecentLessonsWidget";
 import TutorAccessWidget from "./TutorAccessWidget";

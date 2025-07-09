@@ -10,7 +10,7 @@ import {
   ProjectStatus,
   ProjectStepStatus,
   TutorSessionStatus,
-} from "@/prisma/generated/client";
+} from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { generateDiagnosticContent } from "./ai";
 

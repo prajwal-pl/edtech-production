@@ -14,7 +14,7 @@ import {
   ProjectStep,
   Career,
   NotificationType,
-} from "@/prisma/generated/client";
+} from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { generateText } from "./ai";
 

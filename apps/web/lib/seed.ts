@@ -8,7 +8,7 @@ import {
   ProjectStatus,
   ProjectStepStatus,
   TutorSessionStatus,
-} from "@/prisma/generated/client";
+} from "@prisma/client";
 // import { hash } from "bcrypt";
 
 const SALT_ROUNDS = 10;
