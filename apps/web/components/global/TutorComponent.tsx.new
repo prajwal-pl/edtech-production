@@ -12,11 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  startAITutorSession,
-  sendMessageToAITutor,
-  endAITutorSession,
-} from "@/actions/ai-tutoring";
+import { startAITutorSession, sendMessageToAITutor, endAITutorSession } from "@/actions/ai-tutoring";
 import { useUser } from "@clerk/nextjs";
 import MarkdownRenderer from "./MarkdownRenderer";
 
@@ -34,27 +30,27 @@ interface Topic {
 }
 
 const TutorComponent = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      sender: "system",
-      content: "Welcome to your AI Tutor! How can I help you today?",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(
+    [
+      {
+        id: "1",
+        sender: "system",
+        content: "Welcome to your AI Tutor! How can I help you today?",
+        timestamp: new Date(),
+      },
+    ]
+  );
 
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("chat");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string>(""); // Will be set from Clerk auth
-  const [pastSessions, setPastSessions] = useState<
-    Array<{
-      id: string;
-      title: string;
-      date: string;
-    }>
-  >([]);
+  const [pastSessions, setPastSessions] = useState<Array<{
+    id: string;
+    title: string;
+    date: string;
+  }>>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, isLoaded: isUserLoaded, isSignedIn } = useUser();
 
@@ -62,65 +58,39 @@ const TutorComponent = () => {
   useEffect(() => {
     // Only proceed if Clerk has loaded the user data
     if (!isUserLoaded) return;
-
+    
     // Check if the user is signed in
     if (!isSignedIn || !user) {
       console.error("User not authenticated");
       return;
     }
-
+    
     // Set the authenticated user's ID from Clerk
     const clerkUserId = user.id;
-
-    const initializeUser = async () => {
+    setUserId(clerkUserId);
+    
+    // Initialize a new session
+    const initSession = async () => {
       try {
-        // First, sync the user with our database to ensure they exist
-        const { syncUserWithClerk } = await import("@/actions/auth");
-
-        const syncResult = await syncUserWithClerk({
-          clerkId: clerkUserId,
-          email: user.emailAddresses[0]?.emailAddress || "",
-          firstName: user.firstName || undefined,
-          lastName: user.lastName || undefined,
-          displayName: user.fullName || undefined,
-          avatar: user.imageUrl || undefined,
-        });
-
-        if (!syncResult.success) {
-          console.error("Failed to sync user with database:", syncResult.error);
-          return;
-        }
-
-        // Now we can safely use the user ID from our database
-        const dbUserId = syncResult?.user?.id || "";
-        setUserId(dbUserId);
-
-        // Initialize a new session with the database user ID
         const result = await startAITutorSession({
-          userId: dbUserId,
-          title: "New AI Tutoring Session",
+          userId: clerkUserId,
+          title: "New AI Tutoring Session"
         });
-
+        
         if (result.success && result.session) {
           setSessionId(result.session.id);
-
+          
           // Add the welcome message from the session
           if (result.session.messages && result.session.messages.length > 0) {
             const welcomeMsg = result.session.messages[0];
             if (welcomeMsg) {
-              setMessages([
-                {
-                  id: welcomeMsg.id,
-                  sender:
-                    welcomeMsg.sender === "SYSTEM"
-                      ? "system"
-                      : welcomeMsg.sender === "AI"
-                        ? "ai"
-                        : "user",
-                  content: welcomeMsg.content,
-                  timestamp: new Date(welcomeMsg.sentAt),
-                },
-              ]);
+              setMessages([{
+                id: welcomeMsg.id,
+                sender: welcomeMsg.sender === "SYSTEM" ? "system" : 
+                       welcomeMsg.sender === "AI" ? "ai" : "user",
+                content: welcomeMsg.content,
+                timestamp: new Date(welcomeMsg.sentAt)
+              }]);
             }
           }
         } else {
@@ -130,9 +100,12 @@ const TutorComponent = () => {
         console.error("Error initializing session:", error);
       }
     };
-
-    initializeUser();
-
+    
+    // Only initialize the session if we have a valid user ID
+    if (clerkUserId) {
+      initSession();
+    }
+    
     // Clean up session when component unmounts
     return () => {
       if (sessionId) {
@@ -144,7 +117,7 @@ const TutorComponent = () => {
   // Fetch past sessions
   useEffect(() => {
     if (!userId) return;
-
+    
     const fetchPastSessions = async () => {
       try {
         // In a real app, call an API endpoint to get past sessions
@@ -158,14 +131,10 @@ const TutorComponent = () => {
         //     date: new Date(session.createdAt).toLocaleDateString()
         //   })));
         // }
-
+        
         // Using static data for now
         setPastSessions([
-          {
-            id: "session1",
-            title: "Algebra Problem Solving",
-            date: "Yesterday",
-          },
+          { id: "session1", title: "Algebra Problem Solving", date: "Yesterday" },
           { id: "session2", title: "Chemical Reactions", date: "3 days ago" },
           { id: "session3", title: "Essay Writing Tips", date: "Last week" },
         ]);
@@ -173,7 +142,7 @@ const TutorComponent = () => {
         console.error("Error fetching past sessions:", error);
       }
     };
-
+    
     fetchPastSessions();
   }, [userId]);
 
@@ -228,7 +197,7 @@ const TutorComponent = () => {
       const result = await sendMessageToAITutor({
         sessionId,
         userId,
-        message: userQuestion,
+        message: userQuestion
       });
 
       if (result.success && result.response) {
@@ -271,7 +240,7 @@ const TutorComponent = () => {
 
   const handleTopicSelect = async (topic: Topic) => {
     if (!sessionId) return;
-
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       sender: "user",
@@ -287,7 +256,7 @@ const TutorComponent = () => {
       const result = await sendMessageToAITutor({
         sessionId,
         userId,
-        message: `Can you help me with ${topic.title}? ${topic.description}`,
+        message: `Can you help me with ${topic.title}? ${topic.description}`
       });
 
       if (result.success && result.response) {
@@ -330,75 +299,60 @@ const TutorComponent = () => {
         console.error("Error ending previous session:", error);
       }
     }
-
+    
     setIsTyping(true);
-
+    
     try {
       // Start a new session with the authenticated user ID
       const result = await startAITutorSession({
         userId,
-        title: "New AI Tutoring Session",
+        title: "New AI Tutoring Session"
       });
-
+      
       if (result.success && result.session) {
         setSessionId(result.session.id);
-
+        
         // Reset messages with the welcome message from the new session
         if (result.session.messages && result.session.messages.length > 0) {
           const welcomeMsg = result.session.messages[0];
           if (welcomeMsg) {
-            setMessages([
-              {
-                id: welcomeMsg.id,
-                sender:
-                  welcomeMsg.sender === "SYSTEM"
-                    ? "system"
-                    : welcomeMsg.sender === "AI"
-                      ? "ai"
-                      : "user",
-                content: welcomeMsg.content,
-                timestamp: new Date(welcomeMsg.sentAt),
-              },
-            ]);
+            setMessages([{
+              id: welcomeMsg.id,
+              sender: welcomeMsg.sender === "SYSTEM" ? "system" : 
+                     welcomeMsg.sender === "AI" ? "ai" : "user",
+              content: welcomeMsg.content,
+              timestamp: new Date(welcomeMsg.sentAt)
+            }]);
           } else {
             // Fallback welcome message if welcomeMsg is undefined
-            setMessages([
-              {
-                id: Date.now().toString(),
-                sender: "system",
-                content:
-                  "Welcome to your new AI Tutor session! How can I help you today?",
-                timestamp: new Date(),
-              },
-            ]);
+            setMessages([{
+              id: Date.now().toString(),
+              sender: "system",
+              content: "Welcome to your new AI Tutor session! How can I help you today?",
+              timestamp: new Date(),
+            }]);
           }
         } else {
           // Fallback welcome message
-          setMessages([
-            {
-              id: Date.now().toString(),
-              sender: "system",
-              content:
-                "Welcome to your new AI Tutor session! How can I help you today?",
-              timestamp: new Date(),
-            },
-          ]);
+          setMessages([{
+            id: Date.now().toString(),
+            sender: "system",
+            content: "Welcome to your new AI Tutor session! How can I help you today?",
+            timestamp: new Date(),
+          }]);
         }
       } else {
         throw new Error("Failed to start new tutoring session");
       }
     } catch (error) {
       console.error("Error starting new session:", error);
-
-      setMessages([
-        {
-          id: Date.now().toString(),
-          sender: "system",
-          content:
-            "Sorry, I couldn't start a new session. Please try again later.",
-          timestamp: new Date(),
-        },
-      ]);
+      
+      setMessages([{
+        id: Date.now().toString(),
+        sender: "system",
+        content: "Sorry, I couldn't start a new session. Please try again later.",
+        timestamp: new Date(),
+      }]);
     } finally {
       setIsTyping(false);
     }
@@ -413,36 +367,34 @@ const TutorComponent = () => {
         console.error("Error ending previous session:", error);
       }
     }
-
+    
     setIsTyping(true);
-
+    
     try {
       // In a real app, you would fetch the session details from the server
       // For example:
       // const result = await getTutorSessionById(sessionIdToLoad);
       // if (result.success && result.session) {
       //   setSessionId(result.session.id);
-      //
+      //   
       //   // Map the messages from the session to our component format
       //   const sessionMessages = result.session.messages.map(msg => ({
       //     id: msg.id,
-      //     sender: msg.sender === "SYSTEM" ? "system" :
+      //     sender: msg.sender === "SYSTEM" ? "system" : 
       //            msg.sender === "AI" ? "ai" : "user",
       //     content: msg.content,
       //     timestamp: new Date(msg.sentAt)
       //   }));
-      //
+      //   
       //   setMessages(sessionMessages);
       // }
-
+      
       // For demo purposes, we'll just create some fake messages
-      const selectedSession = pastSessions.find(
-        (s) => s.id === sessionIdToLoad
-      );
-
+      const selectedSession = pastSessions.find(s => s.id === sessionIdToLoad);
+      
       if (selectedSession) {
         setSessionId(sessionIdToLoad);
-
+        
         // Create sample messages based on the session title
         const fakePreviousMessages = [
           {
@@ -462,25 +414,22 @@ const TutorComponent = () => {
             sender: "ai" as const,
             content: `I'd be happy to help you with ${selectedSession.title}. What specific aspects are you struggling with?`,
             timestamp: new Date(Date.now() - 1000 * 60 * 4), // 4 minutes ago
-          },
+          }
         ];
-
+        
         setMessages(fakePreviousMessages);
       } else {
         throw new Error("Session not found");
       }
     } catch (error) {
       console.error("Error loading session:", error);
-
-      setMessages([
-        {
-          id: Date.now().toString(),
-          sender: "system",
-          content:
-            "Sorry, I couldn't load the previous session. Please try starting a new one.",
-          timestamp: new Date(),
-        },
-      ]);
+      
+      setMessages([{
+        id: Date.now().toString(),
+        sender: "system",
+        content: "Sorry, I couldn't load the previous session. Please try starting a new one.",
+        timestamp: new Date(),
+      }]);
     } finally {
       setIsTyping(false);
     }

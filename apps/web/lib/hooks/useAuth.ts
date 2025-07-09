@@ -77,6 +77,11 @@ export function useAuth(): UseAuthReturn {
         redirectUrl: "/sso-callback",
         redirectUrlComplete: "/dashboard",
       });
+
+      // Note: For OAuth flows, we'll need to handle the database sync
+      // in the SSO callback page since this redirect happens before
+      // we have access to the user data
+
       toast.success("Authentication successful! Redirecting...");
     } catch (err) {
       toast.error("Failed to login with Google. Please try again.");
@@ -157,7 +162,53 @@ export function useAuth(): UseAuthReturn {
         await signUpActive({
           session: verificationAttempt.createdSessionId,
         });
-        toast.success("Email verified successfully!");
+
+        // Create or sync user in our database
+        try {
+          // Import the syncUserWithClerk function dynamically to avoid server/client mismatch
+          const { syncUserWithClerk } = await import("@/actions/auth");
+
+          // Get user data from Clerk
+          const userData = {
+            clerkId: verificationAttempt.createdUserId || "",
+            email: signUp.emailAddress || "",
+            firstName: signUp.firstName || undefined,
+            lastName: signUp.lastName || undefined,
+            displayName:
+              `${signUp.firstName || ""} ${signUp.lastName || ""}`.trim() ||
+              undefined,
+            avatar: undefined, // Clerk might provide this later
+          };
+
+          // Sync with our database
+          const syncResult = await syncUserWithClerk(userData);
+
+          if (syncResult.success) {
+            console.log(
+              "User synced with database:",
+              syncResult.isNewUser
+                ? "New user created"
+                : "Existing user updated"
+            );
+            toast.success("Account created and synchronized successfully!");
+          } else {
+            console.error(
+              "Failed to sync user with database:",
+              syncResult.error
+            );
+            // Still continue with the flow even if database sync fails
+            toast.error(
+              "Account created but profile sync failed. Some features may be limited."
+            );
+          }
+        } catch (syncError) {
+          console.error("Error syncing user with database:", syncError);
+          // Still continue with the flow even if database sync fails
+          toast.error(
+            "Account created but profile sync failed. Some features may be limited."
+          );
+        }
+
         router.push("/dashboard");
       } else {
         console.error("Verification not complete:", verificationAttempt);

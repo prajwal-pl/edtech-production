@@ -1,8 +1,21 @@
-import React from "react";
+"use client";
+
+import React, { useEffect } from "react";
 import Image from "next/image";
 import SignUpForm from "@/components/global/signUpForm";
+import { useSession } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 export default function SignUpPage() {
+  // const { isLoaded, isSignedIn, session } = useSession();
+  // const router = useRouter();
+
+  // useEffect(() => {
+  //   if (!isSignedIn && isLoaded) {
+  //     // Redirect to the home page if the user is not signed in
+  //     router.push("/dashboard");
+  //   }
+  // }, [isLoaded, isSignedIn]);
   return (
     <div className="flex min-h-screen w-full flex-col md:flex-row">
       {/* Left side - Branding/Hero */}

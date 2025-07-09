@@ -27,7 +27,7 @@ export default function Home() {
 
   const handleLogout = () => {
     signOut({
-      redirectUrl: "/",
+      redirectUrl: "/login",
     });
   };
   return (
