@@ -2,7 +2,7 @@
 
 import db from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { EducationLevel } from "@/prisma/generated/client";
+import { EducationLevel } from "@prisma/client";
 
 /**
  * User CRUD functions - Clerk handles authentication
