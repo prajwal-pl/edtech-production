@@ -1,11 +1,11 @@
 import React from "react";
-import DiagnosticComponent from "@/components/global/DiagnosticComponent";
+import ProjectsComponent from "@/components/global/ProjectsComponent";
 import Container from "@/components/global/Container";
 
 const Page = () => {
   return (
     <Container>
-      <DiagnosticComponent />
+      <ProjectsComponent />
     </Container>
   );
 };

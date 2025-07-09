@@ -1,7 +1,13 @@
 import React from "react";
+import TutorComponent from "@/components/global/TutorComponent";
+import Container from "@/components/global/Container";
 
-const page = () => {
-  return <div>page</div>;
+const Page = () => {
+  return (
+    <Container className="h-screen py-4">
+      <TutorComponent />
+    </Container>
+  );
 };
 
-export default page;
+export default Page;

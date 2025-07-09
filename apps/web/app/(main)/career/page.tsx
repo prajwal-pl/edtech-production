@@ -1,7 +1,13 @@
 import React from "react";
+import Container from "@/components/global/Container";
+import CareerComponent from "@/components/global/CareerComponentNew";
 
-const page = () => {
-  return <div>page</div>;
+const Page = () => {
+  return (
+    <Container>
+      <CareerComponent />
+    </Container>
+  );
 };
 
-export default page;
+export default Page;

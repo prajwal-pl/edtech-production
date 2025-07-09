@@ -1,7 +1,13 @@
 import React from "react";
+import LearnComponent from "@/components/global/LearnComponent";
+import Container from "@/components/global/Container";
 
-const page = () => {
-  return <div>page</div>;
+const Page = () => {
+  return (
+    <Container>
+      <LearnComponent />
+    </Container>
+  );
 };
 
-export default page;
+export default Page;

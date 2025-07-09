@@ -1,7 +1,13 @@
 import React from "react";
+import SettingsComponent from "@/components/global/SettingsComponent";
+import Container from "@/components/global/Container";
 
-const page = () => {
-  return <div>page</div>;
+const Page = () => {
+  return (
+    <Container>
+      <SettingsComponent />
+    </Container>
+  );
 };
 
-export default page;
+export default Page;
