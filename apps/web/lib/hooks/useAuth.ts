@@ -72,11 +72,11 @@ export function useAuth(): UseAuthReturn {
     }
 
     try {
-      await signIn?.authenticateWithRedirect({
-        strategy: "oauth_google",
-        redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/dashboard",
-      });
+      // await signIn?.authenticateWithRedirect({
+      //   strategy: "oauth_google",
+      //   redirectUrl: "/sso-callback",
+      //   redirectUrlComplete: "/dashboard",
+      // });
 
       // Note: For OAuth flows, we'll need to handle the database sync
       // in the SSO callback page since this redirect happens before
