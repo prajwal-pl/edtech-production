@@ -106,5 +106,3 @@ We welcome contributions! Please open issues or pull requests for suggestions, b
 [MIT](LICENSE)
 
 ---
-
-> Built with ❤️ by the IntelliLearn360 Team
