@@ -100,9 +100,3 @@ graph TD;
 We welcome contributions! Please open issues or pull requests for suggestions, bug fixes, or new features.
 
 ---
-
-## 📄 License
-
-[MIT](LICENSE)
-
----
