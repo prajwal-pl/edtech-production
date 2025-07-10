@@ -1,135 +1,102 @@
-# Turborepo starter
+# 🚀 IntelliLearn360
 
-This Turborepo starter is maintained by the Turborepo core team.
+![Next.js](https://img.shields.io/badge/Next.js-15.3.0-blue?logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8.2-blue?logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4.1.11-blue?logo=tailwindcss)
+![Prisma](https://img.shields.io/badge/Prisma-ORM-blue?logo=prisma)
+![IBM RAG](https://img.shields.io/badge/IBM-RAG-blue?logo=ibm)
+![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)
 
-## Using this example
+---
 
-Run the following command:
+## 🌟 Overview
 
-```sh
-npx create-turbo@latest
+**IntelliLearn360** is a unified, modern educational platform that empowers learners with personalized learning paths, real-time AI tutoring, hands-on project experiences, and comprehensive career development tools. Built with the latest web technologies and enhanced by IBM's Retrieval-Augmented Generation (RAG), it bridges the gap between learning and career success.
+
+---
+
+## ✨ Key Features
+
+- 🎯 **Personalized Learning Paths**: Adaptive courses and modules tailored to each learner.
+- 🤖 **AI-Powered Tutoring**: Real-time, context-aware support using IBM RAG and Groq AI.
+- 📝 **Hands-on Projects**: Practical, portfolio-building project experiences.
+- 🚀 **Career Development**: Job search, skill assessment, and resume tools.
+- 📊 **Progress Tracking**: Visual dashboards and analytics for learners.
+- 🔒 **Secure Authentication**: Powered by Clerk.
+- 🌗 **Modern UI/UX**: Responsive, accessible, and beautiful design.
+
+---
+
+## 🏗️ Architecture Blueprint
+
+```mermaid
+graph TD;
+  A[Frontend: Next.js + React + Tailwind] -->|API Calls| B[Backend: Next.js API Routes]
+  B --> C[Prisma ORM]
+  C --> D[(PostgreSQL DB)]
+  B --> E[IBM RAG]
+  B --> F[Groq AI]
+  B --> G[Clerk Auth]
+  A --> H[UI Library]
 ```
 
-## What's inside?
+---
 
-This Turborepo includes the following packages/apps:
+## 🤖 Role of Gen AI (IBM RAG)
 
-### Apps and Packages
+- Powers the AI tutor for real-time, context-aware answers.
+- Retrieves relevant info from curated knowledge sources.
+- Combines retrieval with generative AI for accurate, reliable support.
+- Enhances learning, project guidance, and career advice.
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+---
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## 🛠️ Technologies Used
 
-### Utilities
+- **IBM RAG**: Retrieval-Augmented Generation for AI tutoring
+- **Next.js & React**: Modern frontend framework
+- **TypeScript**: Type-safe development
+- **Tailwind CSS & Radix UI**: Modern, accessible UI
+- **Prisma & PostgreSQL**: Robust data management
+- **Clerk**: Secure authentication
+- **Groq API**: Generative AI
+- **Turborepo**: Monorepo management
 
-This Turborepo has some additional tools already setup for you:
+---
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+## 🚦 Getting Started
 
-### Build
+1. **Clone the repo:**
+   ```bash
+   git clone https://github.com/prajwal-pl/edtech-production
+   cd edtech-production
+   ```
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+3. **Set up environment variables:**
+   - Copy `.env.example` to `.env` and fill in your secrets (DB, Clerk, Groq, IBM RAG, etc.)
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+5. **Open in browser:**
+   - Visit [http://localhost:3000](http://localhost:3000)
 
-To build all apps and packages, run the following command:
+---
 
-```
-cd my-turborepo
+## 📂 Monorepo Structure
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
+- `apps/web` — Main Next.js app
+- `packages/ui` — Shared UI components
+- `packages/eslint-config` — Shared linting rules
+- `packages/typescript-config` — Shared TypeScript configs
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
+---
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+## 💡 Contributing
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+We welcome contributions! Please open issues or pull requests for suggestions, bug fixes, or new features.
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+---
